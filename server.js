@@ -19,45 +19,40 @@ const transporter = nodemailer.createTransport({
 });
 
 app.post('/send-email', async (req, res) => {
-    const { name, email, phone, service, message } = req.body;
-    console.log('Received data:', name, email, phone, service, message);
+    try {
+        // Extract data from request body
+        const { name, email, phone, service, message } = req.body;
 
-    // try {
-    //     // Extract data from request body
-    //     const { to, subject, message } = req.body;
+        // Validate required fields
+        if (!name || !email || !message || !service || !phone) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
 
-    //     // Validate required fields
-    //     if (!to || !subject || !message) {
-    //         return res.status(400).json({ error: 'Missing required fields' });
-    //     }
+        // Configure email options
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_USER,
+            subject: `New message from ${name}: ${service}`,
+            html: `<p>${message}</p><p><strong>Contact Details</strong></p><p>Name: ${name}</p><p>Email: ${email}</p><p>Phone: <a href="tel:${phone}">${phone}</a></p><p>Service: ${service}</p>`
+        };
 
-    //     // Configure email options
-    //     const mailOptions = {
-    //         from: process.env.EMAIL_USER,
-    //         to,
-    //         subject,
-    //         text: message,
-    //         // You can also use HTML content
-    //         // html: '<p>Your HTML message here</p>'
-    //     };
+        // Send the email
+        const info = await transporter.sendMail(mailOptions);
 
-    //     // Send the email
-    //     const info = await transporter.sendMail(mailOptions);
+        res.status(200).json({
+            success: true,
+            messageId: info.messageId,
+            message: 'Email sent successfully'
+        });
 
-    //     res.status(200).json({
-    //         success: true,
-    //         messageId: info.messageId,
-    //         message: 'Email sent successfully'
-    //     });
-
-    // } catch (error) {
-    //     console.error('Error sending email:', error);
-    //     res.status(500).json({
-    //         success: false,
-    //         message: 'Failed to send email',
-    //         error: error.message
-    //     });
-    // }
+    } catch (error) {
+        console.error('Error sending email:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to send email',
+            error: error.message
+        });
+    }
 });
 
 // Start the server
