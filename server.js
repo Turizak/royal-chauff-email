@@ -1,10 +1,25 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const emailLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: {
+        success: false,
+        message: 'Too many requests from this IP. Please try again later.'
+    },
+    skip: (req) => {
+        const trustedIps = ['127.0.0.1', '::1']; // Your trusted IPs
+        return trustedIps.includes(req.ip);
+    }
+});
 
 app.use(bodyParser.json());
 
@@ -18,7 +33,7 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-app.post('/send-email', async (req, res) => {
+app.post('/send-email', emailLimiter, async (req, res) => {
     try {
         // Extract data from request body
         const { name, email, phone, service, message } = req.body;
